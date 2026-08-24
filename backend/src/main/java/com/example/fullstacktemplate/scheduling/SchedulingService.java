@@ -133,7 +133,17 @@ public class SchedulingService {
                 QUERY_ORDER, "created_at.asc")));
     }
 
+    /**
+     * Creates a new calendar owned by the authenticated user. The request must
+     * include a non-blank name. The calendar is created with the default time zone
+     * of the authenticated user unless a different time zone is provided.
+     * @param user the authenticated user creating the calendar
+     * @param request the request payload containing the calendar fields
+     * @return the created calendar object
+     * @throws ApiException if the request is missing required fields or contains unsupported fields
+     */
     public ObjectNode createCalendar(AuthenticatedUser user, ObjectNode request) {
+
         ObjectNode payload = writablePayload(request, CALENDAR_FIELDS, RESOURCE_CALENDAR);
         requireNonBlank(payload, FIELD_NAME, "Calendar name");
         payload.put("owner_profile_id", user.profileId().toString());
@@ -594,6 +604,13 @@ public class SchedulingService {
         return (ArrayNode) response;
     }
 
+    /**
+     * Returns the first object in the response array or throws a 404 if none found.
+     * @param response the Supabase response to inspect
+     * @param resource the resource name for error reporting
+     * @return the first object in the response array
+     * @throws ApiException if the response array is empty or does not contain an object
+     */
     private ObjectNode requireOne(JsonNode response, String resource) {
         ObjectNode result = firstOrNull(response);
         if (result == null) {
@@ -603,6 +620,11 @@ public class SchedulingService {
         return result;
     }
 
+    /**
+     * Returns the first object in the response array or null if none found.
+     * @param response the Supabase response to inspect
+     * @return the first object in the response array or null if none found
+     */
     private ObjectNode firstOrNull(JsonNode response) {
         ArrayNode results = rows(response);
         if (results.isEmpty() || !results.get(0).isObject()) {
