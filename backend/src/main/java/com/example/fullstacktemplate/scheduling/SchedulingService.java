@@ -66,6 +66,7 @@ public class SchedulingService {
     private static final String ROLE_ORGANIZER = "organizer";
     private static final String ERROR_ORGANIZER_REQUIRED = "organizer_required";
     private static final String ERROR_STALE_EVENT_VERSION = "stale_event_version";
+    private static final String RPC_SOFT_DELETE_CALENDAR = "soft_delete_calendar";
 
     private static final String RESOURCE_AVAILABILITY_BLOCK = "availability block";
     private static final String RESOURCE_AVAILABILITY_RULE = "availability rule";
@@ -164,10 +165,21 @@ public class SchedulingService {
     /** Calendar deletion is intentionally a soft delete to match SQL grants and RLS. */
     public ObjectNode deleteCalendar(AuthenticatedUser user, UUID calendarId) {
         ObjectNode existing = requireCalendar(user, calendarId);
-        Instant deletedAt = Instant.now();
-        ObjectNode payload = objectMapper.createObjectNode();
-        payload.put(FIELD_DELETED_AT, deletedAt.toString());
-        supabase.updateMinimal(TABLE_CALENDARS, user, activeById(calendarId), payload);
+        ObjectNode parameters = objectMapper.createObjectNode();
+        parameters.put("p_calendar_id", calendarId.toString());
+        JsonNode result = supabase.rpc(RPC_SOFT_DELETE_CALENDAR, user, parameters);
+        if (result == null || !result.isObject() || !result.path(FIELD_DELETED_AT).isString()) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "invalid_supabase_response",
+                    "Supabase returned an unexpected response shape.");
+        }
+
+        Instant deletedAt;
+        try {
+            deletedAt = Instant.parse(result.path(FIELD_DELETED_AT).asString());
+        } catch (DateTimeParseException exception) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "invalid_supabase_response",
+                    "Supabase returned an invalid calendar deletion timestamp.");
+        }
         return softDeleteAcknowledgement(existing, deletedAt, null);
     }
 

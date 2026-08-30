@@ -67,6 +67,10 @@ public class SupabaseApiClient {
         return request("GET", restPath(table), user.accessToken(), query, null, null);
     }
 
+    public JsonNode rpc(String function, AuthenticatedUser user, JsonNode body) {
+        return request("POST", "/rest/v1/rpc/" + function, user.accessToken(), Map.of(), body, null);
+    }
+
     public JsonNode insert(String table, AuthenticatedUser user, JsonNode body) {
         return request("POST", restPath(table), user.accessToken(), Map.of(), body,
                 "return=representation");

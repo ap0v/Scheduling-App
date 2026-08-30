@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { getGreeting, getHealth } from "@/lib/api";
-import type { GreetingResponse, HealthResponse } from "@/types/api";
+import { getHealth } from "@/lib/api";
+import type { HealthResponse } from "@/types/api";
 
 type ApiState =
   | { kind: "loading" }
-  | { kind: "success"; health: HealthResponse; greeting: GreetingResponse }
+  | { kind: "success"; health: HealthResponse }
   | { kind: "error"; message: string };
 
 export function ApiStatus() {
@@ -18,10 +18,10 @@ export function ApiStatus() {
 
     async function checkApi() {
       try {
-        const [health, greeting] = await Promise.all([getHealth(), getGreeting("Developer")]);
+        const health = await getHealth();
 
         if (!cancelled) {
-          setState({ kind: "success", health, greeting });
+          setState({ kind: "success", health });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach the API.";
@@ -40,11 +40,11 @@ export function ApiStatus() {
   }, []);
 
   return (
-    <section className="api-panel" aria-labelledby="api-status-title" aria-live="polite">
+    <section className="api-panel api-panel--compact" aria-labelledby="api-status-title" aria-live="polite">
       <div className="api-panel__header">
         <div>
-          <h2 id="api-status-title">API connection</h2>
-          <p>The browser calls <code>/api</code>; Next.js forwards it to Spring Boot.</p>
+          <h2 id="api-status-title">Service connection</h2>
+          <p>The browser calls the scheduling API through the local <code>/api</code> proxy.</p>
         </div>
         <span className={"status status--" + state.kind}>
           {state.kind === "loading" ? "Checking" : state.kind === "success" ? "Connected" : "Unavailable"}
@@ -55,12 +55,9 @@ export function ApiStatus() {
         {state.kind === "loading" && <p className="subtle">Waiting for the API response…</p>}
 
         {state.kind === "success" && (
-          <>
-            <p className="greeting">{state.greeting.message}</p>
-            <p className="subtle">
-              <code>{state.health.service}</code> reports <strong>{state.health.status}</strong>.
-            </p>
-          </>
+          <p className="subtle">
+            <code>{state.health.service}</code> reports <strong>{state.health.status}</strong>.
+          </p>
         )}
 
         {state.kind === "error" && (

@@ -47,6 +47,38 @@ Open http://localhost:3000. The page checks the API. The frontend defaults to `h
 
 To point the frontend at a different backend, copy `frontend/.env.example` to `frontend/.env.local` and set `BACKEND_ORIGIN`.
 
+## Scheduling frontend
+
+The Next.js application is an authenticated personal-calendar workspace. It
+uses Supabase Auth in the browser, then sends the active session access token
+to the Spring API through the existing relative `/api` proxy.
+
+Before starting the frontend, copy `frontend/.env.example` to
+`frontend/.env.local` and set the public browser values from your Supabase
+project:
+
+```powershell
+Set-Location frontend
+Copy-Item .env.example .env.local
+```
+
+Set `NEXT_PUBLIC_SUPABASE_URL` to the project base URL and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to its publishable (or legacy anon)
+key. These values are intentionally browser-visible; never put a service-role
+key in the frontend environment.
+
+The UI includes:
+
+- Email/password sign-in and sign-up through Supabase Auth.
+- A month calendar with per-calendar and all-calendar views.
+- Timed and all-day event create, edit, and version-safe delete flows.
+- Attendee, reminder, structured-location, and recurring-exception controls
+  in each event's detail panel.
+- Profile, calendar, weekly working-hours, and one-off availability settings.
+
+Recurring event masters can be created and edited, but the current backend
+does not expand recurrence rules into individual visible occurrences.
+
 ## Supabase scheduling API
 
 The backend now exposes the user-facing portion of

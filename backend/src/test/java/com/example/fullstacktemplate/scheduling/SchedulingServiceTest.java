@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.example.fullstacktemplate.api.ApiException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -59,9 +60,10 @@ class SchedulingServiceTest {
     }
 
     @Test
-    void deleteCalendarUsesAMinimalMutationBecauseRlsHidesSoftDeletedRows() {
+    void deleteCalendarUsesRpcBecauseRlsHidesSoftDeletedRows() {
         UUID calendarId = UUID.randomUUID();
         AuthenticatedUser user = user();
+        String deletedAt = "2026-08-29T20:00:00Z";
         ArrayNode response = objectMapper.createArrayNode();
         response.add(objectMapper.createObjectNode()
                 .put("id", calendarId.toString())
@@ -69,15 +71,19 @@ class SchedulingServiceTest {
         when(supabase.get(org.mockito.ArgumentMatchers.eq("calendars"),
                 org.mockito.ArgumentMatchers.eq(user), org.mockito.ArgumentMatchers.anyMap()))
                 .thenReturn(response);
+        when(supabase.rpc(org.mockito.ArgumentMatchers.eq("soft_delete_calendar"),
+                org.mockito.ArgumentMatchers.eq(user), org.mockito.ArgumentMatchers.any(ObjectNode.class)))
+                .thenReturn(objectMapper.createObjectNode().put("deleted_at", deletedAt));
 
         ObjectNode deleted = service.deleteCalendar(user, calendarId);
 
         assertEquals(calendarId.toString(), deleted.path("id").asString());
-        assertEquals(false, deleted.path("deleted_at").isMissingNode());
-        verify(supabase).updateMinimal(org.mockito.ArgumentMatchers.eq("calendars"),
-                org.mockito.ArgumentMatchers.eq(user), org.mockito.ArgumentMatchers.anyMap(),
-                org.mockito.ArgumentMatchers.any(ObjectNode.class));
-        verify(supabase, never()).update(org.mockito.ArgumentMatchers.eq("calendars"),
+        assertEquals(deletedAt, deleted.path("deleted_at").asString());
+        ArgumentCaptor<ObjectNode> parameters = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(supabase).rpc(org.mockito.ArgumentMatchers.eq("soft_delete_calendar"),
+                org.mockito.ArgumentMatchers.eq(user), parameters.capture());
+        assertEquals(calendarId.toString(), parameters.getValue().path("p_calendar_id").asString());
+        verify(supabase, never()).updateMinimal(org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyMap(),
                 org.mockito.ArgumentMatchers.any(ObjectNode.class));
     }
