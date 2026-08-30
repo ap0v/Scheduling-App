@@ -2,20 +2,19 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
 
 let browserClient: SupabaseClient | undefined;
 
-function requiredEnvironment(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") {
-  return process.env[name]?.trim() ?? "";
-}
+// Next.js only includes NEXT_PUBLIC_* values in the browser bundle when they
+// are accessed statically. Dynamic access (process.env[name]) makes these
+// values appear configured on the server and missing during hydration.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? "";
 
 export function supabaseSetupIssue(): string | null {
-  const url = requiredEnvironment("NEXT_PUBLIC_SUPABASE_URL");
-  const key = requiredEnvironment("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-
-  if (!url || !key) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     return "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in frontend/.env.local.";
   }
 
   try {
-    new URL(url);
+    new URL(supabaseUrl);
   } catch {
     return "NEXT_PUBLIC_SUPABASE_URL must be a complete project URL.";
   }
@@ -31,8 +30,8 @@ export function getSupabaseClient(): SupabaseClient {
 
   if (!browserClient) {
     browserClient = createClient(
-      requiredEnvironment("NEXT_PUBLIC_SUPABASE_URL"),
-      requiredEnvironment("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+      supabaseUrl,
+      supabasePublishableKey,
       {
         auth: {
           persistSession: true,
