@@ -1,14 +1,13 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 
-import { ApiStatus } from "@/components/api-status";
 import { getSupabaseClient, supabaseSetupIssue, type Session } from "@/lib/supabase";
 
 type AuthMode = "sign-in" | "sign-up";
 
 type AuthGateProps = {
-  onAuthenticated: (session: Session) => void;
+  readonly onAuthenticated: (session: Session) => void;
 };
 
 export function AuthGate({ onAuthenticated }: AuthGateProps) {
@@ -19,8 +18,9 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const setupIssue = supabaseSetupIssue();
+  const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (setupIssue) return;
 
@@ -82,7 +82,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
           <form className="stack-form" onSubmit={submit}>
             {mode === "sign-up" && (
               <label>
-                Display name
+                <span>Display name</span>
                 <input
                   autoComplete="name"
                   value={displayName}
@@ -93,7 +93,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
               </label>
             )}
             <label>
-              Email address
+              <span>Email address</span>
               <input
                 autoComplete="email"
                 type="email"
@@ -104,7 +104,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
               />
             </label>
             <label>
-              Password
+              <span>Password</span>
               <input
                 autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
                 type="password"
@@ -115,10 +115,10 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
               />
             </label>
 
-            {message && <p className="form-message" role="status">{message}</p>}
+            {message && <output className="form-message">{message}</output>}
 
             <button className="button button--primary button--full" disabled={submitting} type="submit">
-              {submitting ? "Working…" : mode === "sign-in" ? "Sign in" : "Create account"}
+              {submitting ? "Working…" : submitLabel}
             </button>
           </form>
         )}
