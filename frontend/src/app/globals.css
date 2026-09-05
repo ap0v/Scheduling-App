@@ -1116,6 +1116,18 @@ small,
   padding: 1.45rem;
 }
 
+dialog.event-editor {
+  max-width: calc(100% - 2.5rem);
+  margin: auto;
+  border: 0;
+  color: inherit;
+}
+
+dialog.event-editor::backdrop {
+  background: rgb(21 30 56 / 42%);
+  backdrop-filter: blur(3px);
+}
+
 .modal__header,
 .modal__actions {
   display: flex;
