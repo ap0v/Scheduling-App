@@ -70,7 +70,6 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
       <section className="auth-card" aria-labelledby="auth-form-title">
         <div className="auth-card__heading">
           <h2 id="auth-form-title">{mode === "sign-in" ? "Welcome back" : "Create your account"}</h2>
-          <p>{mode === "sign-in" ? "Sign in to reach your calendars." : "Start with an account backed by Supabase Auth."}</p>
         </div>
 
         {setupIssue ? (
@@ -138,8 +137,6 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
             {mode === "sign-in" ? "Create one" : "Sign in"}
           </button>
         </p>
-
-        <ApiStatus />
       </section>
     </main>
   );
