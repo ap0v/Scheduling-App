@@ -1,6 +1,10 @@
 spring:
   application:
     name: full-stack-template-api
+  # Load local backend secrets when present. The extension hint lets Spring
+  # parse the conventional extensionless .env file as Java properties.
+  config:
+    import: "optional:file:.env[.properties]"
 
 server:
   port: ${PORT:8080}
@@ -14,3 +18,8 @@ management:
 app:
   cors:
     allowed-origins: ${FRONTEND_ORIGIN:http://localhost:3000}
+  supabase:
+    # Use the project's publishable/anon key. The backend forwards each caller's
+    # bearer token, so Supabase RLS remains the authorization boundary.
+    url: ${SUPABASE_URL:}
+    publishable-key: ${SUPABASE_PUBLISHABLE_KEY:${SUPABASE_ANON_KEY:}}

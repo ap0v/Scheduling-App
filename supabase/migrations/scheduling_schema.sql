@@ -391,6 +391,58 @@ create trigger events_add_creator_as_organizer
   after insert on public.events
   for each row execute function public.add_event_creator_as_organizer();
 
+-- The Data API has a direct attendee-management policy, so this invariant must
+-- live in the database as well as in the backend. Skip foreign-key cascade
+-- work, which runs at nested trigger depth while an event is being purged.
+create or replace function public.preserve_event_creator_organizer()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  event_creator_id uuid;
+begin
+  if pg_trigger_depth() > 1 then
+    if tg_op = 'DELETE' then
+      return old;
+    end if;
+    return new;
+  end if;
+
+  select event_record.created_by_profile_id
+  into event_creator_id
+  from public.events as event_record
+  where event_record.id = old.event_id;
+
+  if old.profile_id = event_creator_id and old.role = 'organizer' then
+    if tg_op = 'DELETE' then
+      raise exception using
+        errcode = '23514',
+        message = 'the event creator must remain an organizer attendee';
+    end if;
+
+    if new.event_id is distinct from old.event_id
+      or new.profile_id is distinct from event_creator_id
+      or new.role is distinct from 'organizer' then
+      raise exception using
+        errcode = '23514',
+        message = 'the event creator must remain an organizer attendee';
+    end if;
+  end if;
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger event_attendees_preserve_creator_organizer
+  before update or delete on public.event_attendees
+  for each row execute function public.preserve_event_creator_organizer();
+
 -- Tokens are stored only as one-way digests; raw guest-link tokens never enter
 -- the database.
 create table public.event_invitations (
@@ -456,6 +508,42 @@ create table public.event_reminders (
 );
 
 create index event_reminders_event_id_idx on public.event_reminders (event_id);
+
+-- Moving an event child to another event bypasses domain semantics. In
+-- particular, moving an attendee would also rebind its invitation tokens to a
+-- different event, so the parent reference is immutable after creation.
+create or replace function public.prevent_event_child_reassignment()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.event_id is distinct from old.event_id then
+    raise exception using
+      errcode = '23514',
+      message = 'an event child cannot be reassigned to a different event';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger event_occurrence_overrides_prevent_event_reassignment
+  before update of event_id on public.event_occurrence_overrides
+  for each row execute function public.prevent_event_child_reassignment();
+
+create trigger event_attendees_prevent_event_reassignment
+  before update of event_id on public.event_attendees
+  for each row execute function public.prevent_event_child_reassignment();
+
+create trigger event_locations_prevent_event_reassignment
+  before update of event_id on public.event_locations
+  for each row execute function public.prevent_event_child_reassignment();
+
+create trigger event_reminders_prevent_event_reassignment
+  before update of event_id on public.event_reminders
+  for each row execute function public.prevent_event_child_reassignment();
 
 create table public.availability_rules (
   id uuid primary key default gen_random_uuid(),
@@ -989,6 +1077,10 @@ revoke execute on function public.handle_new_user()
 revoke execute on function public.handle_auth_user_email_change()
   from public, anon, authenticated, service_role;
 revoke execute on function public.add_event_creator_as_organizer()
+  from public, anon, authenticated, service_role;
+revoke execute on function public.preserve_event_creator_organizer()
+  from public, anon, authenticated, service_role;
+revoke execute on function public.prevent_event_child_reassignment()
   from public, anon, authenticated, service_role;
 revoke execute on function public.handle_event_deactivation()
   from public, anon, authenticated, service_role;

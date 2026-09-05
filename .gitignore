@@ -9,6 +9,7 @@ frontend/.env.*.local
 
 # Backend
 backend/target/
+backend/.env 
 
 # Editors and operating systems
 .idea/
