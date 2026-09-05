@@ -63,21 +63,12 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
     <main className="auth-page">
       <section className="auth-intro" aria-labelledby="auth-title">
         <div className="brand-mark" aria-hidden="true">S</div>
-        <p className="eyebrow">Personal scheduling, in one place</p>
-        <h1 id="auth-title">Make room for what matters.</h1>
-        <p>
-          Plan your calendar, keep your working hours current, and manage the details around every event.
-        </p>
         <div className="auth-feature-list" aria-label="Application features">
-          <span>Calendar planning</span>
-          <span>Version-safe edits</span>
-          <span>Availability controls</span>
         </div>
       </section>
 
       <section className="auth-card" aria-labelledby="auth-form-title">
         <div className="auth-card__heading">
-          <p className="eyebrow">Your workspace</p>
           <h2 id="auth-form-title">{mode === "sign-in" ? "Welcome back" : "Create your account"}</h2>
           <p>{mode === "sign-in" ? "Sign in to reach your calendars." : "Start with an account backed by Supabase Auth."}</p>
         </div>
