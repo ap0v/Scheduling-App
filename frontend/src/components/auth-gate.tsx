@@ -2,9 +2,15 @@
 
 import { type SubmitEvent, useState } from "react";
 
+import { registerAccount } from "@/lib/auth-signup";
 import { getSupabaseClient, supabaseSetupIssue, type Session } from "@/lib/supabase";
 
 type AuthMode = "sign-in" | "sign-up";
+
+type AuthMessage = {
+  kind: "success" | "error";
+  text: string;
+};
 
 type AuthGateProps = {
   readonly onAuthenticated: (session: Session) => void;
@@ -15,7 +21,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<AuthMessage | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const setupIssue = supabaseSetupIssue();
   const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
@@ -37,23 +43,26 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
         return;
       }
 
-      const { data, error } = await client.auth.signUp({
+      const session = await registerAccount(client, {
         email,
         password,
-        options: {
-          data: displayName.trim() ? { display_name: displayName.trim() } : undefined,
-        },
+        displayName,
       });
-      if (error) throw error;
 
-      if (data.session) {
-        onAuthenticated(data.session);
+      if (session) {
+        onAuthenticated(session);
       } else {
-        setMessage("Account created. Check your email to confirm it, then sign in.");
+        setMessage({
+          kind: "success",
+          text: "Account created successfully. Check your email to confirm your account, then sign in.",
+        });
         setMode("sign-in");
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "We could not complete that request.");
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "We could not complete that request.",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -115,7 +124,11 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
               />
             </label>
 
-            {message && <output className="form-message">{message}</output>}
+            {message && (
+              <output className={`form-message form-message--${message.kind}`}>
+                {message.text}
+              </output>
+            )}
 
             <button className="button button--primary button--full" disabled={submitting} type="submit">
               {submitting ? "Working…" : submitLabel}
