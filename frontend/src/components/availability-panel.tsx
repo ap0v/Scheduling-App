@@ -1,18 +1,18 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 
 import { SchedulingApi } from "@/lib/api";
 import { dateKey, dateTimeLocalValue, isTimeZone, WEEKDAY_NAMES, zonedDateTimeToIso } from "@/lib/date-time";
 import type { AvailabilityBlock, AvailabilityBlockKind, AvailabilityRule, Profile } from "@/types/api";
 
-type AvailabilityPanelProps = {
+type AvailabilityPanelProps = Readonly<{
   api: SchedulingApi;
   blocks: AvailabilityBlock[];
   onChanged: () => Promise<void>;
   profile: Profile;
   rules: AvailabilityRule[];
-};
+}>;
 
 function readableError(error: unknown) {
   return error instanceof Error ? error.message : "That availability change could not be saved.";
@@ -36,6 +36,8 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
   const [blockNote, setBlockNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const ruleSubmitLabel = editingRule ? "Save rule" : "Add rule";
+  const blockSubmitLabel = editingBlock ? "Save block" : "Add block";
 
   function resetRule() {
     setEditingRule(null);
@@ -58,7 +60,7 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
     setMessage(null);
   }
 
-  async function saveRule(submission: FormEvent<HTMLFormElement>) {
+  async function saveRule(submission: SubmitEvent<HTMLFormElement>) {
     submission.preventDefault();
     if (!isTimeZone(ruleTimeZone)) {
       setMessage("Use a valid IANA time zone, such as America/New_York.");
@@ -130,7 +132,7 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
     setMessage(null);
   }
 
-  async function saveBlock(submission: FormEvent<HTMLFormElement>) {
+  async function saveBlock(submission: SubmitEvent<HTMLFormElement>) {
     submission.preventDefault();
     if (!isTimeZone(blockTimeZone)) {
       setMessage("Use a valid IANA time zone, such as America/New_York.");
@@ -205,7 +207,8 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
           </div>
           <form className="settings-form" onSubmit={saveRule}>
             <h3>{editingRule ? "Edit weekly rule" : "Add weekly rule"}</h3>
-            <label>Day
+            <label>
+              <span>Day</span>
               <select onChange={(item) => setWeekday(item.target.value)} value={weekday}>
                 {WEEKDAY_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
               </select>
@@ -217,7 +220,7 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
             <label>Effective until <small>(exclusive)</small><input onChange={(item) => setEffectiveUntil(item.target.value)} type="date" value={effectiveUntil} /></label>
             <div className="settings-form__actions">
               {editingRule && <button className="button button--quiet" onClick={resetRule} type="button">Cancel</button>}
-              <button className="button button--primary" disabled={saving} type="submit">{saving ? "Saving…" : editingRule ? "Save rule" : "Add rule"}</button>
+              <button className="button button--primary" disabled={saving} type="submit">{saving ? "Saving…" : ruleSubmitLabel}</button>
             </div>
           </form>
         </section>
@@ -238,7 +241,8 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
           </div>
           <form className="settings-form" onSubmit={saveBlock}>
             <h3>{editingBlock ? "Edit block" : "Add a block"}</h3>
-            <label>Kind
+            <label>
+              <span>Kind</span>
               <select onChange={(item) => setBlockKind(item.target.value as AvailabilityBlockKind)} value={blockKind}><option value="unavailable">Unavailable</option><option value="available">Available</option></select>
             </label>
             <label>Starts<input onChange={(item) => setBlockStartsAt(item.target.value)} required type="datetime-local" value={blockStartsAt} /></label>
@@ -247,7 +251,7 @@ export function AvailabilityPanel({ api, blocks, onChanged, profile, rules }: Av
             <label className="settings-form__wide">Note <small>(optional)</small><textarea maxLength={500} onChange={(item) => setBlockNote(item.target.value)} rows={2} value={blockNote} /></label>
             <div className="settings-form__actions">
               {editingBlock && <button className="button button--quiet" onClick={resetBlock} type="button">Cancel</button>}
-              <button className="button button--primary" disabled={saving} type="submit">{saving ? "Saving…" : editingBlock ? "Save block" : "Add block"}</button>
+              <button className="button button--primary" disabled={saving} type="submit">{saving ? "Saving…" : blockSubmitLabel}</button>
             </div>
           </form>
         </section>
